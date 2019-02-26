@@ -36,7 +36,7 @@ class CreateProject(wx.Frame):
 
     self.excel_path = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, u"Select a file", u"*.*",
                                         wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE)
-    gSizer1.Add(self.excel_path, 0, wx.ALL, 5)
+    gSizer1.Add(self.excel_pa1th, 0, wx.ALL, 5)
 
     self.m_staticText3 = wx.StaticText(self, wx.ID_ANY, u"包名", wx.DefaultPosition, wx.DefaultSize, 0)
     self.m_staticText3.Wrap(-1)
@@ -181,7 +181,7 @@ class myapp(CreateProject):
   def crteate_dao(self, sheet, path):
     all_class_names = []
     for i in range(0, sheet.nrows):
-      if str(sheet.row_values(i)[1]) is not '' and str(sheet.row_values(i)[0]) is '':
+      if str(sheet.row_values(i)[1]) is not '' and str(sheet.row_values(i)[0]) is '' and not str(sheet.row_values(i)[1]).startswith('IX', 0, 2):
         class_str_old = string.capwords(str(sheet.row_values(i)[1]).replace('_', ' '))
         class_str_new = class_str_old.replace(' ', '')
         all_class_names.append(class_str_new)
@@ -217,7 +217,7 @@ class myapp(CreateProject):
     # mapper开头拼接
     # = []
     while rows_num < sheet.nrows:
-      if sheet.row_values(rows_num)[1] is '':
+      if sheet.row_values(rows_num)[1] is '' or str(sheet.row_values(rows_num)[1]).startswith('IX', 0, 2):
         rows_num += 1
         continue
       cl_class_old = str(sheet.row_values(rows_num)[1])
@@ -227,33 +227,48 @@ class myapp(CreateProject):
       mapper_file = open(mapper_path.replace(".", "\\\\") + "/" + class_name_str + "Mapper.xml", 'w', encoding="utf-8")
       param_map = {}
 
-      map_toung = []
-      map_toung.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-      map_toung.append(
+      map_start = []
+      map_start.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+      map_start.append(
         "<!DOCTYPE mapper PUBLIC \"-//mybatis.org//DTD Mapper 3.0//EN\" \"http://mybatis.org/dtd/mybatis-3-mapper.dtd\" >\n")
-      map_toung.append(
+      map_start.append(
         "<mapper namespace=\"" + dao_path + "." + class_name_str + "Mapper\">\n")
       # insert 拼接
       insert_sql_one = []
       insert_sql_list = []
-      insert_sql_same = []
-      # select拼接
-      select_sql = []
-      # update拼接
-      update_sql_one = []
-      update_sql_list = []
-      update_sql_same = []
-      select_sql.append(
-        "<select id=\"select" + class_name_str + "\" parameterType=\"" + pojo_path + "." + class_name_str
-        + "\"\n\tresultType=\"java.util.List\">\n\tSELECT \n")
+      insert_sql_one_middle=[]
+      insert_sql_list_middle=[]
       insert_sql_one.append(
         "<insert id=\"insert" + class_name_str + "\" parameterType=\"" + pojo_path + "." + class_name_str
         + "\">\n")
       insert_sql_list.append("<insert id=\"insert" + class_name_str + "s\" parameterType=\"java.util.List\">\n")
-      insert_sql_toung = []
-      insert_sql_toung.append("\tINSERT INTO " + table_name_str + " (\n")
-      insert_sql_middle = []
-      insert_sql_end = []
+      insert_sql_one.append("\tINSERT INTO " + table_name_str + " (\n")
+      insert_sql_list.append("\tINSERT INTO " + table_name_str + " (\n")
+
+      # select拼接
+      select_sql = []
+      select_sql.append(
+        "<select id=\"select" + class_name_str + "\" parameterType=\"" + pojo_path + "." + class_name_str
+        + "\"\n\tresultType=\"java.util.List\">\n\tSELECT \n")
+
+      # update拼接
+      update_sql_one = []
+      update_sql_list = []
+      update_sql_list.append("<update id=\"update" + class_name_str + "s\" parameterType=\"java.util.List\">\n")
+      update_sql_list.append("\tBEGIN\n")
+      update_sql_list.append("\t<foreach collection=\"list\" separator=\";\" item=\"item\" index=\"index\">\n")
+      update_sql_list.append("\t\tUPDATE " + table_name_str + " SET \n")
+      update_sql_one.append("<update id=\"update" + class_name_str + "\" parameterType=\"" + pojo_path + "." + class_name_str+ "\">\n")
+      update_sql_one.append("\t\tUPDATE " + table_name_str + " SET \n")
+      update_sql_one.append("\t\tWHERE\n")
+      update_sql_list.append("\t\tWHERE\n")
+
+      # delete拼接
+      delete_sql = []
+      delete_sql.append("<delete id=\"delete" + table_name_str + "\" parameterType=\"" + pojo_path + "." + class_name_str+ "\">\n")
+      delete_sql.append("\tdelete from " + table_name_str + " where \n")
+      delete_sql.append("\t<foreach collection=\"list\" separator=\"or\" item=\"item\" index=\"index\">\n")
+
       for i in range(rows_num, sheet.nrows):
         rows_num += 1
         if sheet.row_values(i)[1] is '':
@@ -263,10 +278,12 @@ class myapp(CreateProject):
           continue
         cl_db = str(sheet.row_values(i)[1])
         if i == sheet.nrows - 1 or sheet.row_values(i + 1)[1] is '':
-          insert_sql_toung.append("\t\t" + cl_db + "\n")
+          insert_sql_one.append("\t\t" + cl_db + "\n")
+          insert_sql_list.append("\t\t" + cl_db + "\n")
           select_sql.append("\t\t" + cl_db + "\n")
         else:
-          insert_sql_toung.append("\t\t" + cl_db + ",\n")
+          insert_sql_one.append("\t\t" + cl_db + ",\n")
+          insert_sql_list.append("\t\t" + cl_db + ",\n")
           select_sql.append("\t\t" + cl_db + ",\n")
 
         cl_class_old = str(sheet.row_values(i)[1])
@@ -277,7 +294,7 @@ class myapp(CreateProject):
         if i == 0:
           new_str = cl_str_property
           continue
-        # insert批量 拼接
+        # insert拼接
         if "VARCHAR" in str(sheet.row_values(i)[3]):
           cl_type = "VARCHAR"
         elif "DATE" in str(sheet.row_values(i)[3]):
@@ -286,95 +303,78 @@ class myapp(CreateProject):
           cl_type = "DOUBLE"
         if i == sheet.nrows - 1 or sheet.row_values(i + 1)[1] is '':
           if "LAST_UPDATE_TIME" == str(sheet.row_values(i)[1]) or "CREATE_DATE" == str(sheet.row_values(i)[1]):
-            insert_sql_middle.append("\t\tSYSDATE\n")
+            insert_sql_one_middle.append("\t\tSYSDATE\n")
+            insert_sql_list_middle.append("\t\tSYSDATE\n")
           else:
-            insert_sql_middle.append("\t\t#{item." + cl_str + ", jdbcType=" + cl_type + "}\n")
+            insert_sql_one_middle.append("\t\t#{" + cl_str + ", jdbcType=" + cl_type + "}\n")
+            insert_sql_list_middle.append("\t\t#{item." + cl_str + ", jdbcType=" + cl_type + "}\n")
         else:
           if "LAST_UPDATE_TIME" == str(sheet.row_values(i)[1]) or "CREATE_DATE" == str(sheet.row_values(i)[1]):
-            insert_sql_middle.append("\t\tSYSDATE,\n")
+            insert_sql_one_middle.append("\t\tSYSDATE,\n")
+            insert_sql_list_middle.append("\t\tSYSDATE,\n")
           elif str(sheet.row_values(i)[5]) == "N":
-            insert_sql_middle.append("\t\t#{item." + cl_str + "},\n")
+            insert_sql_one_middle.append("\t\t#{" + cl_str + "},\n")
+            insert_sql_list_middle.append("\t\t#{item." + cl_str + "},\n")
           else:
-            insert_sql_middle.append("\t\t#{item." + cl_str + ", jdbcType=" + cl_type + "},\n")
+            insert_sql_one_middle.append("\t\t#{" + cl_str + ", jdbcType=" + cl_type + "},\n")
+            insert_sql_list_middle.append("\t\t#{item." + cl_str + ", jdbcType=" + cl_type + "},\n")
 
-        # update批量拼接
+        # update拼接
         if not str(sheet.row_values(i)[4]) == "":
           param_map[cl_class_old] = cl_str
           continue
-        if i == sheet.nrows - 1 or sheet.row_values(i + 1)[1] is '':
-          if "VERSION" == cl_class_old:
-            update_sql_same.append('\t\t' + cl_class_old + '=' + cl_class_old + '+1\n')
-          elif "LAST_UPDATE_TIME" == cl_class_old:
-            update_sql_same.append('\t\tSYSDATE\n')
-          else:
-            update_sql_same.append("\t\t<if test=\"item." + cl_str + "!=null and item." + cl_str + " !=''\">\n")
-            update_sql_same.append("\t\t\t" + cl_class_old + "=" + "#{item." + cl_str + "}\n")
-            update_sql_same.append("\t\t</if>\n")
-        else:
-          if "VERSION" == cl_class_old:
-            update_sql_same.append('\t\t' + cl_class_old + '=' + cl_class_old + '+1,\n')
-          elif "LAST_UPDATE_TIME" == cl_class_old:
-            update_sql_same.append('\t\tSYSDATE,\n')
-          else:
-            update_sql_same.append("\t\t<if test=\"item." + cl_str + "!=null and item." + cl_str + " !=''\">\n")
-            update_sql_same.append("\t\t\t" + cl_class_old + "=" + "#{item." + cl_str + "},\n")
-            update_sql_same.append("\t\t</if>\n")
 
-      select_sql.append("\tFROM " + table_name_str + " WHERE \n")
-      insert_sql_toung.append("\t) ( \n")
-      insert_sql_one.append("".join(insert_sql_toung))
-      insert_sql_list.append("".join(insert_sql_toung))
-      insert_sql_list.append(
-        "\t <foreach item=\"item\" collection=\"list\" index=\"index\" separator=\"union all \">\n")
+        if "VERSION" == cl_class_old:
+          update_sql_one.append('\t\t' + cl_class_old + '=' + cl_class_old + '+1,\n')
+          update_sql_list.append('\t\t' + cl_class_old + '=' + cl_class_old + '+1,\n')
+        elif "LAST_UPDATE_TIME" == cl_class_old:
+          update_sql_one.append('\t\tSYSDATE,\n')
+          update_sql_list.append('\t\tSYSDATE,\n')
+        else:
+          update_sql_one.append("\t\t<if test=\"" + cl_str + "!=null and " + cl_str + " !=''\">\n")
+          update_sql_list.append("\t\t<if test=\"item." + cl_str + "!=null and item." + cl_str + " !=''\">\n")
+        if i == sheet.nrows - 1 or sheet.row_values(i + 1)[1] is '':
+          update_sql_one.append("\t\t\t" + cl_class_old + "=" + "#{" + cl_str + "}\n")
+          update_sql_list.append("\t\t\t" + cl_class_old + "=" + "#{item." + cl_str + "}\n")
+        else:
+          update_sql_one.append("\t\t\t" + cl_class_old + "=" + "#{" + cl_str + "},\n")
+          update_sql_list.append("\t\t\t" + cl_class_old + "=" + "#{item." + cl_str + "},\n")
+        update_sql_one.append("\t\t</if>\n")
+        update_sql_list.append("\t\t</if>\n")
+
+      insert_sql_list.append("\t <foreach item=\"item\" collection=\"list\" index=\"index\" separator=\"union all \">\n")
       insert_sql_list.append("\tSELECT \n")
-      insert_sql_one.append("".join(insert_sql_middle))
-      insert_sql_list.append("".join(insert_sql_middle))
+      insert_sql_list.append("".join(insert_sql_list_middle))
       insert_sql_list.append("\tfrom dual \n")
       insert_sql_list.append("\t</foreach>\n")
       insert_sql_list.append("\t)\n")
       insert_sql_list.append("</insert>\n")
-
+      insert_sql_one.append("".join(insert_sql_one_middle))
       insert_sql_one.append("\t)\n")
       insert_sql_one.append("</insert>\n")
+      select_sql.append("\tFROM " + table_name_str + " WHERE \n")
 
-      update_sql_list.append("<update id=\"update" + class_name_str + "s\" parameterType=\"java.util.List\">\n")
-      update_sql_list.append("\tBEGIN\n")
-      update_sql_list.append("\t<foreach collection=\"list\" separator=\";\" item=\"item\" index=\"index\">\n")
-      update_sql_list.append("\t\tUPDATE " + table_name_str + " SET \n")
-      update_sql_one.append(
-        "<update id=\"update" + class_name_str + "\" parameterType=\"" + pojo_path + "." + class_name_str
-        + "\">\n")
-      update_sql_one.append("\t\tUPDATE " + table_name_str + " SET \n")
-
-      update_sql_same.append("\t\tWHERE\n")
       i = 0
-      # delete拼接
-      delete_sql_list = []
-      delete_sql_list.append(
-        "<delete id=\"delete" + table_name_str + "\" parameterType=\"" + pojo_path + "." + class_name_str
-        + "\">\n")
-      delete_sql_list.append("\tdelete from " + table_name_str + " where \n")
-      delete_sql_list.append("\t<foreach collection=\"list\" separator=\"or\" item=\"item\" index=\"index\">\n")
       for key, value in param_map.items():
         i += 1
         if i == len(param_map):
-          update_sql_same.append("\t\t" + key + "=#{item." + value + "}\n")
-          delete_sql_list.append("\t\t" + key + "=#{item." + value + "}\n")
-          select_sql.append("\t\t" + key + "=#{item." + value + "}\n")
+          update_sql_one.append("\t\t" + key + "=#{" + value + "}\n")
+          update_sql_list.append("\t\t" + key + "=#{item." + value + "}\n")
+          delete_sql.append("\t\t" + key + "=#{item." + value + "}\n")
+          select_sql.append("\t\t" + key + "=#{" + value + "}\n")
           break
-        update_sql_same.append("\t\t" + key + "=#{item." + value + "} and \n")
-        delete_sql_list.append("\t\t(" + key + "=#{item." + value + "} and \n")
+        update_sql_one.append("\t\t" + key + "=#{" + value + "} and \n")
+        update_sql_list.append("\t\t" + key + "=#{item." + value + "} and \n")
+        delete_sql.append("\t\t(" + key + "=#{item." + value + "} and \n")
         select_sql.append("\t\t" + key + "=#{" + value + "} and \n")
 
-      update_sql_list.append("".join(update_sql_same))
       update_sql_list.append("\t</foreach>\n")
       update_sql_list.append("\t;END;\n")
       update_sql_list.append("</update>\n")
-      update_sql_one.append("".join(update_sql_same))
       update_sql_one.append("</update>\n")
-      delete_sql_list.append("\t</foreach>\n</delete>\n")
+      delete_sql.append("\t</foreach>\n</delete>\n")
       select_sql.append("</select>")
-      mapper_str = map_toung + insert_sql_one + insert_sql_list + update_sql_one + update_sql_list + delete_sql_list + select_sql
+      mapper_str = map_start + insert_sql_one + insert_sql_list + update_sql_one + update_sql_list + delete_sql + select_sql
       mapper_str.append("\n</mapper>")
       mapper_file.write("".join(mapper_str))
       mapper_file.close()
@@ -400,7 +400,7 @@ class myapp(CreateProject):
       property_str.append("@NoArgsConstructor\n")
       for i in range(rows_num, sheet.nrows):
         rows_num += 1
-        if sheet.row_values(i)[1] is '':
+        if sheet.row_values(i)[1] is '' or str(sheet.row_values(i)[1])[:2] == 'IX':
           class_name_num.append(i + 1)
           # property_str = []
           break
@@ -443,6 +443,8 @@ class myapp(CreateProject):
           property_str.insert(2, "import java.time.LocalDateTime;\n")
         pojo_code[new_str + '.java'] = ''.join(property_str)
     for (key, value) in pojo_code.items():
+      if key ==".java":
+        continue
       with open(path.replace(".", "\\\\") + "/" + key, 'w', encoding='utf-8') as wfile:
         wfile.write(value)
 
@@ -456,8 +458,8 @@ class myapp(CreateProject):
     with open(path, 'w', encoding='utf-8') as wfile:
       for i in range(row_num, sheet.nrows):
         # row_num += 1
-        if sheet.row_values(i)[0] is '':
-          if sheet.row_values(i)[0] is '' and sheet.row_values(i)[1] is '':
+        if sheet.row_values(i)[0] == '':
+          if str(sheet.row_values(i)[1]) == '' or str(sheet.row_values(i)[1]).startswith('IX', 0, 2):
             continue
           table_name = str(sheet.row_values(i)[1])
           PK_SQL = []

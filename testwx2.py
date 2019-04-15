@@ -193,19 +193,19 @@ class myapp(CreateProject):
       class_dao_str.append("import java.util.List;\n")
       class_dao_str.append("import " + path + ".entity." + class_name + ";\n\n")
       class_dao_str.append("public interface " + class_name + "Dao { \n")
-      class_dao_str.append("\t/**\n\t * 增加一条\n\t */\n")
+      class_dao_str.append("\t/**\n\t * 增加一条\n\t * param +"+class_name_lower+"+\n\t */\n")
       class_dao_str.append("\tvoid insert" + class_name + " (" + class_name + " " + class_name_lower + ");\n")
-      class_dao_str.append("\t/**\n\t * 修改一条\n\t */\n")
+      class_dao_str.append("\t/**\n\t * 修改一条\n\t * param +"+class_name_lower+"+\n\t */\n")
       class_dao_str.append("\tvoid update" + class_name + " (" + class_name + " " + class_name_lower + ");\n")
-      class_dao_str.append("\t/**\n\t * 删除一条\n\t */\n")
+      class_dao_str.append("\t/**\n\t * 删除一条\n\t * param +"+class_name_lower+"+\n\t */\n")
       class_dao_str.append("\tvoid delete" + class_name + " (" + class_name + " " + class_name_lower + ");\n")
-      class_dao_str.append("\t/**\n\t * 增加多条\n\t */\n")
+      class_dao_str.append("\t/**\n\t * 增加多条\n\t * param +"+class_name_lower+"+\n\t */\n")
       class_dao_str.append(
         "\tvoid insert" + class_name + "s (List<" + class_name + "> " + class_name_lower + "s);\n")
-      class_dao_str.append("\t/**\n\t * 修改多条\n\t */\n")
+      class_dao_str.append("\t/**\n\t * 修改多条\n\t * param +"+class_name_lower+"+\n\t */\n")
       class_dao_str.append(
         "\tvoid update" + class_name + "s (List<" + class_name + "> " + class_name_lower + "s);\n")
-      class_dao_str.append("\t/**\n\t * 通过主建查询\n\t */\n")
+      class_dao_str.append("\t/**\n\t * 通过主建查询\n\t * param +"+class_name_lower+"+\n\t */\n")
       class_dao_str.append(
         "\tList<" + class_name + "> select" + class_name + "(" + class_name + " " + class_name_lower + ");\n")
       class_dao_str.append("}\t")
@@ -265,7 +265,7 @@ class myapp(CreateProject):
 
       # delete拼接
       delete_sql = []
-      delete_sql.append("<delete id=\"delete" + table_name_str + "\" parameterType=\"" + pojo_path + "." + class_name_str+ "\">\n")
+      delete_sql.append("<delete id=\"delete" + class_name_str + "\" parameterType=\"" + pojo_path + "." + class_name_str+ "\">\n")
       delete_sql.append("\tdelete from " + table_name_str + " where \n")
       delete_sql.append("\t<foreach collection=\"list\" separator=\"or\" item=\"item\" index=\"index\">\n")
 
